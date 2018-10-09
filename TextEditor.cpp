@@ -26,6 +26,8 @@ bool equals(InputIt1 first1, InputIt1 last1,
 	return first1 == last1 && first2 == last2;
 }
 
+static std::regex regex_glyphs = std::regex("[\\x80-\\x9a]");
+
 TextEditor::TextEditor()
 	: mLineSpacing(1.0f)
 	, mUndoIndex(0)
@@ -265,6 +267,8 @@ TextEditor::Coordinates TextEditor::ScreenPosToCoordinates(const ImVec2& aPositi
 			    columnCoord < line.size())
 		{		
 			cumulatedStringWidth[1] = cumulatedStringWidth[0]; 
+			if ((uint8_t)line[columnCoord].mChar >= 0x80 && (uint8_t)line[columnCoord].mChar < 0x9a)
+				cumulatedString += '\xc2';
 			cumulatedString += line[columnCoord].mChar;
 			cumulatedStringWidth[0] = ImGui::CalcTextSize(cumulatedString.c_str()).x ;
 			columnWidth = (cumulatedStringWidth[0] - cumulatedStringWidth[1]);
@@ -522,7 +526,10 @@ void TextEditor::Render(const char* aTitle, const ImVec2& aSize, bool aBorder)
 				{
 					if (isprint(c) || isspace(c))
 					{
-						EnterCharacter((char)c, shift);
+						if (c >= 'A' && c <= 'Z')
+							EnterCharacter(c - 'A' + '\x80', shift);
+						else
+							EnterCharacter((char)c, shift);
 					}
 				}
 			}
@@ -754,6 +761,7 @@ void TextEditor::Render(const char* aTitle, const ImVec2& aSize, bool aBorder)
 				if ((color != prevColor || glyph.mChar == '\t') && !buffer.empty())
 				{
 					const ImVec2 newOffset(textScreenPos.x + bufferOffset.x, textScreenPos.y + bufferOffset.y);
+					buffer = std::regex_replace(buffer, regex_glyphs, "\xc2$&");
 					drawList->AddText(newOffset, mPalette[(uint8_t)prevColor], buffer.c_str());
 					auto textSize = ImGui::CalcTextSize(buffer.c_str());
 					bufferOffset.x += textSize.x + 1.0f * fontScale;
@@ -771,6 +779,7 @@ void TextEditor::Render(const char* aTitle, const ImVec2& aSize, bool aBorder)
 			if (!buffer.empty())
 			{
 				const ImVec2 newOffset(textScreenPos.x + bufferOffset.x, textScreenPos.y + bufferOffset.y);
+				buffer = std::regex_replace(buffer, regex_glyphs, "\xc2$&");
 				drawList->AddText(newOffset, mPalette[(uint8_t)prevColor], buffer.c_str());
 				buffer.clear();
 			}
@@ -1868,9 +1877,12 @@ float TextEditor::TextDistanceToLineStart(const Coordinates& aFrom) const
 		}
 		else
 		{
-			char tempCString[2];
- 			tempCString[0] = line[it].mChar;
-			tempCString[1] = '\0';
+			char tempCString[3] = { line[it].mChar, '\0', '\0' };
+			if ((uint8_t)line[it].mChar >= 0x80 && (uint8_t)line[it].mChar < 0x9a)
+			{
+ 				tempCString[1] = tempCString[0];
+ 				tempCString[0] = '\xc2';
+			}
 			distance += ImGui::CalcTextSize(tempCString).x + 1.0f * fontScale;
 		}
 	}
