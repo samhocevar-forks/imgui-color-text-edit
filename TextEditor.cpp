@@ -44,6 +44,7 @@ TextEditor::TextEditor()
 	, mColorRangeMax(0)
 	, mSelectionMode(SelectionMode::Normal)
 	, mCheckComments(true)
+	, mLastClick(-1.0f)
 {
 	SetPalette(GetDarkPalette());
 	SetLanguageDefinition(LanguageDefinition::HLSL());
@@ -550,13 +551,12 @@ void TextEditor::HandleMouseInputs()
 
 	if (ImGui::IsWindowHovered())
 	{
-		static float lastClick = -1.0f;
 		if (!shift && !alt)
 		{
 			auto click = ImGui::IsMouseClicked(0);
 			auto doubleClick = ImGui::IsMouseDoubleClicked(0);
 			auto t = ImGui::GetTime();
-			auto tripleClick = click && !doubleClick && t - lastClick < io.MouseDoubleClickTime;
+			auto tripleClick = click && !doubleClick && (mLastClick != -1.0f && (t - mLastClick) < io.MouseDoubleClickTime);
 
 			/*
 				Left mouse button triple click
@@ -571,7 +571,7 @@ void TextEditor::HandleMouseInputs()
 					SetSelection(mInteractiveStart, mInteractiveEnd, mSelectionMode);
 				}
 
-				lastClick = -1.0f;
+				mLastClick = -1.0f;
 			}
 
 			/*
@@ -590,7 +590,7 @@ void TextEditor::HandleMouseInputs()
 					SetSelection(mInteractiveStart, mInteractiveEnd, mSelectionMode);
 				}
 
-				lastClick = (float)ImGui::GetTime();
+				mLastClick = (float)ImGui::GetTime();
 			}
 
 			/*
@@ -605,7 +605,7 @@ void TextEditor::HandleMouseInputs()
 					mSelectionMode = SelectionMode::Normal;
 				SetSelection(mInteractiveStart, mInteractiveEnd, mSelectionMode);
 
-				lastClick = (float)ImGui::GetTime();
+				mLastClick = (float)ImGui::GetTime();
 			}
 			// Mouse left button dragging (=> update selection)
 			else if (ImGui::IsMouseDragging(0) && ImGui::IsMouseDown(0))
@@ -633,6 +633,8 @@ void TextEditor::Render()
 	}
 	
 	static std::string buffer;
+	assert(buffer.empty());
+	
 	auto contentSize = ImGui::GetWindowContentRegionMax();
 	auto drawList = ImGui::GetWindowDrawList();
 	float longest(mTextStart);
@@ -1613,7 +1615,7 @@ void TextEditor::Redo(int aSteps)
 
 const TextEditor::Palette & TextEditor::GetDarkPalette()
 {
-	static Palette p = { {
+	const static Palette p = { {
 		0xff7f7f7f,	// Default
 		0xffd69c56,	// Keyword	
 		0xff00ff00,	// Number
@@ -1641,7 +1643,7 @@ const TextEditor::Palette & TextEditor::GetDarkPalette()
 
 const TextEditor::Palette & TextEditor::GetLightPalette()
 {
-	static Palette p = { {
+	const static Palette p = { {
 		0xff7f7f7f,	// None
 		0xffff0c06,	// Keyword	
 		0xff008000,	// Number
@@ -1669,7 +1671,7 @@ const TextEditor::Palette & TextEditor::GetLightPalette()
 
 const TextEditor::Palette & TextEditor::GetRetroBluePalette()
 {
-	static Palette p = { {
+	const static Palette p = { {
 		0xff00ffff,	// None
 		0xffffff00,	// Keyword	
 		0xff00ff00,	// Number
