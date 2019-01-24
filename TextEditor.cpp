@@ -28,6 +28,15 @@ bool equals(InputIt1 first1, InputIt1 last1,
 
 static std::regex regex_glyphs = std::regex("[\\x80-\\x9a]");
 
+static std::string preprocess(std::string const &text)
+{
+	std::string ret = std::regex_replace(text, regex_glyphs, "\xc2$&");
+	for (size_t i = 0; i < ret.size(); ++i)
+		if ((ret[i] >= 'a' && ret[i] <= 'z') || (ret[i] >= 'A' && ret[i] <= 'Z'))
+			ret[i] ^= 'a' ^ 'A';
+	return ret;
+}
+
 TextEditor::TextEditor()
 	: mLineSpacing(1.0f)
 	, mUndoIndex(0)
@@ -772,7 +781,7 @@ void TextEditor::Render()
 				if ((color != prevColor || glyph.mChar == '\t') && !buffer.empty())
 				{
 					const ImVec2 newOffset(textScreenPos.x + bufferOffset.x, textScreenPos.y + bufferOffset.y);
-					buffer = std::regex_replace(buffer, regex_glyphs, "\xc2$&");
+					buffer = preprocess(buffer);
 					drawList->AddText(newOffset, prevColor, buffer.c_str());
 					auto textSize = ImGui::CalcTextSize(buffer.c_str());
 					bufferOffset.x += textSize.x + 1.0f * fontScale;
@@ -790,7 +799,7 @@ void TextEditor::Render()
 			if (!buffer.empty())
 			{
 				const ImVec2 newOffset(textScreenPos.x + bufferOffset.x, textScreenPos.y + bufferOffset.y);
-				buffer = std::regex_replace(buffer, regex_glyphs, "\xc2$&");
+				buffer = preprocess(buffer);
 				drawList->AddText(newOffset, prevColor, buffer.c_str());
 				buffer.clear();
 			}
@@ -1888,7 +1897,7 @@ void TextEditor::ColorizeInternal()
 				auto& g = line[currentCoord.mColumn];
 				auto c = g.mChar;
 
-				if (c != mLanguageDefinition.mPreprocChar && !isspace(c))
+				if (c != mLanguageDefinition.mPreprocChar && (c < 0 || !isspace(c)))
 					firstChar = false;
 
 				if (currentCoord.mColumn == line.size() - 1 && line[line.size() - 1].mChar == '\\')
@@ -1993,8 +2002,8 @@ float TextEditor::TextDistanceToLineStart(const Coordinates& aFrom) const
 			char tempCString[3] = { line[it].mChar, '\0', '\0' };
 			if ((uint8_t)line[it].mChar >= 0x80 && (uint8_t)line[it].mChar < 0x9a)
 			{
- 				tempCString[1] = tempCString[0];
- 				tempCString[0] = '\xc2';
+				tempCString[1] = tempCString[0];
+				tempCString[0] = '\xc2';
 			}
 			distance += ImGui::CalcTextSize(tempCString).x + 1.0f * fontScale;
 		}
