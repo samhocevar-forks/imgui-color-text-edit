@@ -276,7 +276,7 @@ TextEditor::Coordinates TextEditor::ScreenPosToCoordinates(const ImVec2& aPositi
 			(size_t)columnCoord < line.size())
 		{
 			cumulatedStringWidth[1] = cumulatedStringWidth[0];
-			if ((uint8_t)line[columnCoord].mChar >= 0x80 && (uint8_t)line[columnCoord].mChar < 0x9a)
+			if ((uint8_t)line[columnCoord].mChar >= 0x80)
 				cumulatedString += '\xc2';
 			cumulatedString += line[columnCoord].mChar;
 			cumulatedStringWidth[0] = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, -1.0f, cumulatedString.c_str(), nullptr, nullptr).x;
@@ -2001,7 +2001,7 @@ float TextEditor::TextDistanceToLineStart(const Coordinates& aFrom) const
 		else
 		{
 			char tempCString[3] = { line[it].mChar, '\0', '\0' };
-			if ((uint8_t)line[it].mChar >= 0x80 && (uint8_t)line[it].mChar < 0x9a)
+			if ((uint8_t)line[it].mChar >= 0x80)
 			{
 				tempCString[1] = tempCString[0];
 				tempCString[0] = '\xc2';
